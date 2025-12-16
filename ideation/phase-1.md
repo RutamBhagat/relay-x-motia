@@ -65,7 +65,6 @@ export const StoredWebhookSchema = z.object({
   id: z.string(),
   projectId: z.string(),
   method: z.string(),
-  path: z.string(),
   headers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   body: z.unknown(),
   receivedAt: z.string(),
@@ -135,7 +134,6 @@ export const handler: Handlers['CaptureWebhook'] = async (req, { emit, logger })
       webhookId,
       projectId,
       method: 'POST',
-      path: req.pathParams.projectId || '',
       headers: req.headers,
       body: req.body,
       receivedAt: new Date().toISOString(),
@@ -339,7 +337,7 @@ export const handler: Handlers['ReplayWebhook'] = async (req, { emit, logger, st
     status: 200,
     body: {
       webhookId: id,
-      status: 'forwarding',
+      status: 'accepted',
     },
   };
 };
@@ -364,7 +362,6 @@ const inputSchema = z.object({
   webhookId: z.string(),
   projectId: z.string(),
   method: z.string(),
-  path: z.string(),
   headers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   body: z.unknown(),
   receivedAt: z.string(),
@@ -381,7 +378,7 @@ export const config: EventConfig = {
 };
 
 export const handler: Handlers['ProcessWebhook'] = async (input, { logger, state }) => {
-  const { webhookId, projectId, method, path, headers, body, receivedAt } = input;
+  const { webhookId, projectId, method, headers, body, receivedAt } = input;
 
   logger.info('Processing webhook', { webhookId, projectId });
 
@@ -390,7 +387,6 @@ export const handler: Handlers['ProcessWebhook'] = async (input, { logger, state
     id: webhookId,
     projectId,
     method,
-    path,
     headers,
     body,
     receivedAt,
@@ -486,6 +482,8 @@ export const handler: Handlers['ForwardWebhook'] = async (input, { logger, state
 
 **Key Patterns**:
 - Clean header forwarding (only Content-Type)
+  - Intentionally reduces `z.union([z.string(), z.array(z.string())])` to single `string`
+  - Prevents header pollution (host, content-length, signatures)
 - Defensive null checks before state updates
 - Try-catch for error handling
 - State updates for success/failure tracking
@@ -579,7 +577,6 @@ curl http://localhost:3000/webhooks/wh_1734261600000_abc123de
   "id": "wh_1734261600000_abc123de",
   "projectId": "project123",
   "method": "POST",
-  "path": "project123",
   "headers": {
     "content-type": "application/json"
   },
@@ -623,9 +620,11 @@ curl -X POST http://localhost:3000/webhooks/wh_1734261600000_abc123de/replay \
 ```json
 {
   "webhookId": "wh_1734261600000_abc123de",
-  "status": "forwarding"
+  "status": "accepted"
 }
 ```
+
+**Note**: `"accepted"` indicates replay request accepted for async processing. The stored webhook status will update to `"forwarded"` or `"failed"` after completion.
 
 **Verify:**
 - Python server prints received payload
@@ -706,8 +705,12 @@ src/
 - `host` header points to relay, not target
 - `content-length` may be incorrect
 - Signature headers (e.g., `x-stripe-signature`) meant for relay
+- `x-forwarded-*` headers create confusion
 
 **Solution**: Only forward `Content-Type: application/json`
+- Intentionally reduces header type from `union([string, array])` to single `string`
+- Target receives clean, predictable request
+- Prevents mysterious replay failures
 
 ### B. Defensive State Checks
 **Problem**: State might be missing if webhook deleted between steps
