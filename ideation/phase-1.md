@@ -90,6 +90,13 @@ export function generateWebhookId(): string {
 - Zod schemas for validation
 - TypeScript types for type safety
 
+**Motia Best Practices Applied**:
+- ✅ Object format for `emits` with descriptive labels (better Workbench UX)
+- ✅ `traceId` in all event handlers (distributed tracing & observability)
+- ✅ `state.getGroup()` for listing (verified correct pattern)
+- ✅ 200 response for webhooks (not 202 - correct for webhook ack)
+- ✅ Hardcoded POST for forwarding (semantically correct for replay)
+
 ---
 
 ## Step 3: API Steps (4 Endpoints)
@@ -111,7 +118,7 @@ export const config: ApiRouteConfig = {
   path: '/relay/:projectId',
   method: 'POST',
   description: 'Universal webhook capture endpoint',
-  emits: ['webhook-captured'],
+  emits: [{ topic: 'webhook-captured', label: 'Webhook Captured' }],
   flows: ['webhook-relay'],
   responseSchema: {
     200: z.object({
@@ -294,7 +301,7 @@ export const config: ApiRouteConfig = {
   path: '/webhooks/:id/replay',
   method: 'POST',
   description: 'Replay webhook to target URL',
-  emits: ['webhook-forward'],
+  emits: [{ topic: 'webhook-forward', label: 'Forward Webhook' }],
   flows: ['webhook-relay'],
   bodySchema,
   responseSchema: {
@@ -377,10 +384,10 @@ export const config: EventConfig = {
   input: inputSchema,
 };
 
-export const handler: Handlers['ProcessWebhook'] = async (input, { logger, state }) => {
+export const handler: Handlers['ProcessWebhook'] = async (input, { traceId, logger, state }) => {
   const { webhookId, projectId, method, headers, body, receivedAt } = input;
 
-  logger.info('Processing webhook', { webhookId, projectId });
+  logger.info('Processing webhook', { traceId, webhookId, projectId });
 
   // Store in state: namespace='webhooks', key=webhookId
   const webhookData: StoredWebhook = {
@@ -395,7 +402,7 @@ export const handler: Handlers['ProcessWebhook'] = async (input, { logger, state
 
   await state.set('webhooks', webhookId, webhookData);
 
-  logger.info('Webhook stored', { webhookId, projectId });
+  logger.info('Webhook stored', { traceId, webhookId, projectId });
 };
 ```
 
@@ -427,10 +434,10 @@ export const config: EventConfig = {
   input: inputSchema,
 };
 
-export const handler: Handlers['ForwardWebhook'] = async (input, { logger, state }) => {
+export const handler: Handlers['ForwardWebhook'] = async (input, { traceId, logger, state }) => {
   const { webhookId, targetUrl, headers, body } = input;
 
-  logger.info('Forwarding webhook', { webhookId, targetUrl });
+  logger.info('Forwarding webhook', { traceId, webhookId, targetUrl });
 
   try {
     // Forward only Content-Type header (clean forwarding)
@@ -459,9 +466,10 @@ export const handler: Handlers['ForwardWebhook'] = async (input, { logger, state
       await state.set('webhooks', webhookId, webhook);
     }
 
-    logger.info('Webhook forwarded', { webhookId, targetUrl, status: response.status });
+    logger.info('Webhook forwarded', { traceId, webhookId, targetUrl, status: response.status });
   } catch (error) {
     logger.error('Webhook forward failed', {
+      traceId,
       webhookId,
       targetUrl,
       error: error instanceof Error ? error.message : 'Unknown error',
