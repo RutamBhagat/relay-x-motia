@@ -67,10 +67,10 @@ export const StoredWebhookSchema = z.object({
   method: z.string(),
   headers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   body: z.unknown(),
-  receivedAt: z.string(),
+  receivedAt: z.iso.datetime(),
   status: WebhookStatus,
-  forwardedAt: z.string().optional(),
-  targetUrl: z.string().optional(),
+  forwardedAt: z.iso.datetime().optional(),
+  targetUrl: z.url().optional(),
   errorMessage: z.string().optional(),
 });
 
@@ -79,7 +79,7 @@ export type StoredWebhook = z.infer<typeof StoredWebhookSchema>;
 // Helper to generate webhook IDs
 export function generateWebhookId(): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 10);
+  const random = crypto.randomUUID();
   return `wh_${timestamp}_${random}`;
 }
 ```
@@ -87,7 +87,10 @@ export function generateWebhookId(): string {
 **Key Points**:
 - Webhook ID format: `wh_{timestamp}_{random}`
 - 3 status states: received, forwarded, failed
-- Zod schemas for validation
+- Zod validation strategy: **Narrow internal metadata, loose external data**
+  - `receivedAt`, `forwardedAt`: `.datetime()` (system-generated ISO)
+  - `targetUrl`: `.url()` (validated URL format)
+  - `body`, `headers`: Loose (`z.unknown()`, `z.record()`) for unpredictable webhook payloads
 - TypeScript types for type safety
 
 **Motia Best Practices Applied**:
