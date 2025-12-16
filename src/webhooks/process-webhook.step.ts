@@ -7,7 +7,7 @@ const inputSchema = z.object({
   method: z.string(),
   headers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   body: z.unknown(),
-  receivedAt: z.string(),
+  receivedAt: z.iso.datetime(),
 });
 
 export const config: EventConfig = {
