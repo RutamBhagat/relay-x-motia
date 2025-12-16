@@ -12,5 +12,18 @@
         "sourceHandlePosition": "right"
       }
     }
+  },
+  {
+    "id": "webhook-relay",
+    "config": {
+      "src/webhooks/process-webhook.step.ts": {
+        "x": 447,
+        "y": 22
+      },
+      "src/.motia/compiled/webhooks/process-webhook.step.js": {
+        "x": 0,
+        "y": 156
+      }
+    }
   }
 ]

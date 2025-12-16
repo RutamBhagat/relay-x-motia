@@ -657,9 +657,9 @@ curl -X POST http://localhost:3000/webhooks/wh_1734261600000_abc123de/replay \
 
 ## Phase 1 Completion Checklist
 
-- [ ] src/hello/ removed
-- [ ] src/webhooks/ created with 6 step files
-- [ ] src/types/webhook.types.ts created
+- [ ] src/hello/ removed (defer for now)
+- [x] src/webhooks/ created with 6 step files
+- [x] src/types/webhook.types.ts created
 - [ ] POST /relay/:projectId accepts webhooks
 - [ ] GET /webhooks lists all webhooks
 - [ ] GET /webhooks?projectId=X filters correctly
