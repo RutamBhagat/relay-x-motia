@@ -12,7 +12,11 @@ declare module 'motia' {
   }
 
   interface Handlers {
+    'ReplayWebhook': ApiRouteHandler<{ targetUrl: string }, ApiResponse<200, { webhookId: string; status: string }> | ApiResponse<404, { error: string }>, { topic: 'webhook-forward'; data: { webhookId: string; targetUrl: string; headers: Record<string, string | Array<string>>; body: unknown } }>
     'ProcessWebhook': EventHandler<{ webhookId: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string }, never>
+    'ListWebhooks': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { webhooks: Array<{ id: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string; status: 'received' | 'forwarded' | 'failed'; forwardedAt?: string; targetUrl?: string; errorMessage?: string }>; total: number; limit: number; offset: number }>, never>
+    'GetWebhook': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { id: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string; status: 'received' | 'forwarded' | 'failed'; forwardedAt?: string; targetUrl?: string; errorMessage?: string }> | ApiResponse<404, { error: string }>, never>
+    'ForwardWebhook': EventHandler<{ webhookId: string; targetUrl: string; headers: Record<string, string | Array<string>>; body: unknown }, never>
     'CaptureWebhook': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { webhookId: string; status: string }>, { topic: 'webhook-captured'; data: { webhookId: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string } }>
     'ProcessGreeting': EventHandler<{ timestamp: string; appName: string; greetingPrefix: string; requestId: string }, never>
     'HelloAPI': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { message: string; status: string; appName: string }>, { topic: 'process-greeting'; data: { timestamp: string; appName: string; greetingPrefix: string; requestId: string } }>
