@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-export const WebhookStatus = z.enum(["received", "forwarded", "failed"]);
+export const WebhookStatus = z.enum([
+  "received",
+  "forwarded",
+  "failed",
+  "retrying",
+  "dlq",
+]);
 
 export const StoredWebhookSchema = z.object({
   id: z.string(),
@@ -13,6 +19,9 @@ export const StoredWebhookSchema = z.object({
   forwardedAt: z.iso.datetime().optional(),
   targetUrl: z.url().optional(),
   errorMessage: z.string().optional(),
+  retryCount: z.number().default(0),
+  lastRetryAt: z.iso.datetime().optional(),
+  dlqAt: z.iso.datetime().optional(),
 });
 
 export type StoredWebhook = z.infer<typeof StoredWebhookSchema>;

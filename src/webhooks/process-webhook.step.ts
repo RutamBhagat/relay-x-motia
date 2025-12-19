@@ -22,7 +22,7 @@ export const config: EventConfig = {
 
 export const handler: Handlers["ProcessWebhook"] = async (
   input,
-  { logger, state }
+  { logger, state, streams }
 ) => {
   const { webhookId, projectId, method, headers, body, receivedAt } = input;
 
@@ -36,7 +36,21 @@ export const handler: Handlers["ProcessWebhook"] = async (
     body,
     receivedAt,
     status: "received",
+    retryCount: 0,
   });
+
+  // Push to both global and per-project stream feeds
+  const streamData = {
+    id: webhookId,
+    projectId,
+    method,
+    receivedAt,
+    status: "received" as const,
+    retryCount: 0,
+  };
+
+  await streams.webhookFeed.set("global", webhookId, streamData);
+  await streams.webhookFeed.set(projectId, webhookId, streamData);
 
   logger.info("Webhook stored in state", { webhookId });
 };

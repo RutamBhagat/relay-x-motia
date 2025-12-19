@@ -8,18 +8,19 @@ import { EventHandler, ApiRouteHandler, ApiResponse, MotiaStream, CronHandler } 
 
 declare module 'motia' {
   interface FlowContextStateStreams {
-    
+    'webhookFeed': MotiaStream<{ id: string; projectId: string; method: string; receivedAt: string; status: 'received' | 'forwarded' | 'failed' | 'retrying' | 'dlq'; targetUrl?: string; errorMessage?: string; retryCount: number }>
   }
 
   interface Handlers {
-    'ProcessGreeting': EventHandler<{ timestamp: string; appName: string; greetingPrefix: string; requestId: string }, never>
-    'HelloAPI': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { message: string; status: string; appName: string }>, { topic: 'process-greeting'; data: { timestamp: string; appName: string; greetingPrefix: string; requestId: string } }>
-    'ReplayWebhook': ApiRouteHandler<{ targetUrl: string }, ApiResponse<200, { webhookId: string; status: string }> | ApiResponse<404, { error: string }>, { topic: 'webhook-forward'; data: never }>
-    'ForwardWebhook': EventHandler<{ webhookId: string; targetUrl: string; headers: Record<string, string | Array<string>>; body: unknown }, never>
+    'RetryWebhook': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { message: string; webhookId: string }> | ApiResponse<400, { error: string }> | ApiResponse<404, { error: string }>, { topic: 'webhook-forward'; data: { webhookId: string; targetUrl: string; headers: Record<string, string | Array<string>>; body: unknown } }>
+    'ReplayWebhook': ApiRouteHandler<{ targetUrl: string }, ApiResponse<200, { webhookId: string; status: string }> | ApiResponse<404, { error: string }>, { topic: 'webhook-forward'; data: { webhookId: string; targetUrl: string; headers: Record<string, string | Array<string>>; body: unknown } }>
     'ProcessWebhook': EventHandler<{ webhookId: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string }, never>
-    'GetWebhook': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { id: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string; status: 'received' | 'forwarded' | 'failed'; forwardedAt?: string; targetUrl?: string; errorMessage?: string }> | ApiResponse<404, { error: string }>, never>
-    'CaptureWebhook': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { webhookId: string; status: string }>, { topic: 'webhook-captured'; data: never }>
-    'ListWebhooks': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { webhooks: Array<{ id: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string; status: 'received' | 'forwarded' | 'failed'; forwardedAt?: string; targetUrl?: string; errorMessage?: string }>; total: number; limit: number; offset: number }>, never>
+    'ListWebhooks': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { webhooks: Array<{ id: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string; status: 'received' | 'forwarded' | 'failed' | 'retrying' | 'dlq'; forwardedAt?: string; targetUrl?: string; errorMessage?: string; retryCount: number; lastRetryAt?: string; dlqAt?: string }>; total: number; limit: number; offset: number }>, never>
+    'ListFailedWebhooks': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { webhooks: Array<{ id: string; projectId: string; status: 'failed' | 'dlq' | 'retrying'; receivedAt: string; targetUrl?: string; errorMessage?: string; retryCount: number; lastRetryAt?: string; dlqAt?: string }>; total: number }>, never>
+    'GetWebhook': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { id: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string; status: 'received' | 'forwarded' | 'failed' | 'retrying' | 'dlq'; forwardedAt?: string; targetUrl?: string; errorMessage?: string; retryCount: number; lastRetryAt?: string; dlqAt?: string }> | ApiResponse<404, { error: string }>, never>
+    'ForwardWebhook': EventHandler<{ webhookId: string; targetUrl: string; headers: Record<string, string | Array<string>>; body: unknown }, { topic: 'webhook-forward-dlq'; data: { webhookId: string; targetUrl: string; errorMessage: string; statusCode: number } }>
+    'ForwardWebhookDLQ': EventHandler<{ webhookId: string; targetUrl: string; errorMessage: string; statusCode: number }, never>
+    'CaptureWebhook': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { webhookId: string; status: string }>, { topic: 'webhook-captured'; data: { webhookId: string; projectId: string; method: string; headers: Record<string, string | Array<string>>; body: unknown; receivedAt: string } }>
   }
     
 }

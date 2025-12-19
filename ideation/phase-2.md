@@ -73,7 +73,7 @@ await streams.webhookFeed.set(projectId, webhookId, streamData)
 - Attempts: **3 total** (1 initial + 2 retries)
 - Source: Verified in `repos/motia/packages/adapter-bullmq-events/src/config-builder.ts:22-24`
 
-Optional: Enable exponential backoff in `motia.config.ts`:
+Optional: Enable exponential backoff in `motia.config.ts`: (defer for now)
 ```typescript
 bullmqPlugin({
   defaultJobOptions: {
@@ -140,7 +140,7 @@ if (!response.ok) {
 - Logs permanently failed webhooks
 - Future: Send alerts (Slack, email)
 
-BullMQ handles exponential backoff automatically when handler throws error.
+BullMQ handles exponential backoff automatically when handler throws error. (defer for now)
 
 ---
 
